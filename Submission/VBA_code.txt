@@ -1,0 +1,120 @@
+'declare variables
+    Dim cell_vol As LongLong
+    Dim GV As LongLong
+    Dim I As Long
+    Dim k As Long
+    Dim last_row As Long
+    Dim percent_change As Double
+    Dim price_change As Double
+    Dim ticker As String
+    Dim ticker_close As Double
+    Dim ticker_open As Double
+    Dim vol_total As LongLong
+
+Sub wsLoopStocks()
+
+    For Each ws In Worksheets
+            
+        'make header row for leaderboard
+        ws.Cells(1, 9).Value = "Ticker"
+        ws.Cells(1, 10).Value = "Quarterly Change"
+        ws.Cells(1, 11).Value = "Percent Change"
+        ws.Cells(1, 12).Value = "Volume"
+        
+        'make header row for summary cells
+        ws.Cells(1, 15).Value = "Ticker"
+        ws.Cells(1, 16).Value = "Value"
+        ws.Cells(2, 14).Value = "Greatest % increase"
+        ws.Cells(3, 14).Value = "Greatest % decrease"
+        ws.Cells(4, 14).Value = "Greatest total volume"
+        
+        'define "last_row"
+        last_row = ActiveSheet.Cells(ActiveSheet.Rows.Count, 1).End(xlUp).Row
+        
+        'assign values for the following
+        vol_total = 0
+        k = 2
+        ticker_open = ws.Cells(2, 3).Value
+             
+        'Loop starting from row 2 through "last_row"
+        For I = 2 To last_row:
+            
+            'error check: if open price is 0
+            If (ticker_open > 0) Then
+                percent_change = price_change / ticker_open
+            Else
+                percent_change = 0
+            End If
+            
+            'assign value of row i, column 7 to "cell_vol"
+            cell_vol = ws.Cells(I, 7).Value
+            'assign value of row i, column 1 to "ticker"
+            ticker = ws.Cells(I, 1).Value
+              
+            'IF the next row's ticker value is different than the one above, then
+            If (ws.Cells(I + 1, 1).Value <> ticker) Then
+                'define "vol_total" : sum all the cell_vol values for corresponding ticker
+                vol_total = vol_total + cell_vol
+                'assign value of row i, column 6 to "ticker_close"
+                ticker_close = ws.Cells(I, 6).Value
+                'define "price_change"
+                price_change = ticker_close - ticker_open
+                
+                'assign values to the following
+                ws.Cells(k, 9).Value = ticker
+                ws.Cells(k, 10).Value = price_change
+                ws.Cells(k, 11).Value = percent_change
+                ws.Cells(k, 12).Value = vol_total
+                
+                'formatting
+                If (price_change > 0) Then
+                    ws.Cells(k, 10).Interior.ColorIndex = 4 ' Green
+                ElseIf (price_change < 0) Then
+                    ws.Cells(k, 10).Interior.ColorIndex = 3 ' Red
+                Else
+                    ws.Cells(k, 10).Interior.ColorIndex = 2 ' White
+                End If
+                
+                'reset
+                vol_total = 0
+                k = k + 1
+                'assign next new value to "ticker_open"
+                ticker_open = ws.Cells(I + 1, 3).Value
+            Else
+                'define or sum "vol_total"
+                vol_total = vol_total + cell_vol
+            End If
+        Next I
+       
+       'format summary cells
+       ws.Range("P2:P3").NumberFormat = "0.00%"
+       
+       'define the following variables
+       GI = WorksheetFunction.Max(ws.Range("K:K"))
+       GD = WorksheetFunction.Min(ws.Range("K:K"))
+       GV = WorksheetFunction.Max(ws.Range("L:L"))
+       
+       'assign values to the following variables
+       ws.Range("P2").Value = GI
+       ws.Range("P3").Value = GD
+       ws.Range("P4").Value = GV
+       
+       'index match to find ticker name
+       ws.Cells(2, 15).Value = WorksheetFunction.Index(ws.Range("I:I"), WorksheetFunction.Match(ws.Range("P2"), ws.Range("K:K"), 0))
+       ws.Cells(3, 15).Value = WorksheetFunction.Index(ws.Range("I:I"), WorksheetFunction.Match(ws.Range("P3"), ws.Range("K:K"), 0))
+       ws.Cells(4, 15).Value = WorksheetFunction.Index(ws.Range("I:I"), WorksheetFunction.Match(ws.Range("P4"), ws.Range("L:L"), 0))
+                
+        'format the leaderboard
+        Columns("K:K").NumberFormat = "0.00%"
+        Columns("I:P").AutoFit
+             
+    Next ws
+            
+End Sub
+
+Sub reset()
+
+    ws.Range("I:P").Value = ""
+    ws.Range("I:P").Interior.ColorIndex = -4142
+
+End Sub
